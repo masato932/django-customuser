@@ -1,10 +1,27 @@
 from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 from accounts.models import CustomUser
-from accounts.forms import ProfileForm
+from accounts.forms import ProfileForm, SignupUserForm # 追加
 from django.shortcuts import render, redirect
+from allauth.account import views # 追加
+
+class SignupView(views.SignupView):
+    template_name = 'accounts/signup.html'
+    form_class = SignupUserForm
+
+class LogoutView(views.LogoutView):
+    template_name = 'accounts/logout.html'
+
+    def post(self, *args, **kwargs):
+        if self.request.user.is_authenticated:
+            self.logout()
+        return redirect('/')
+
+class LoginView(views.LoginView):
+    template_name = 'accounts/login.html'
 
 
-class ProfileEditView(View):
+class ProfileEditView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         user_data = CustomUser.objects.get(id=request.user.id)
         form = ProfileForm(
@@ -34,6 +51,10 @@ class ProfileEditView(View):
             'form': form
         })
         
-class ProfileView(View):
+class ProfileView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'accounts/profile.html')
+        user_data = CustomUser.objects.get(id=request.user.id)
+
+        return render(request, 'accounts/profile.html', {
+            'user_data': user_data,
+        })
